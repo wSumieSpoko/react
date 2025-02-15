@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalendarz z wydarzeniami</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.2/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.2/main.min.js"></script>
+    <!-- Łączenie z Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none; 
+            position: fixed; 
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 20px; border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="flex justify-between items-center p-6 bg-blue-500 text-white">
+        <h2 class="text-2xl font-semibold">Kalendarz wydarzeń</h2>
+        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md">Wyloguj</button>
+    </div>
+
+    <!-- Powiadomienie o pomyślnym logowaniu -->
+    <% if session[:login_success] %>
+        <div id="notification" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white p-4 rounded-lg shadow-md w-64">
+            <p>Pomyślnie zalogowano!</p>
+            <div id="progress-bar" class="bg-green-700 h-2 mt-2 rounded-full w-full" style="width: 100%;"></div>
+        </div>
+        <script>
+            setTimeout(function() {
+                document.getElementById("notification").style.display = 'none';
+            }, 3000);
+        </script>
+        <% session[:login_success] = nil %> <!-- Resetowanie flagi sesji -->
+    <% end %>
+
+    <div id="calendar" class="max-w-7xl mx-auto my-6 p-4 bg-white rounded-lg shadow-md"></div>
+
+    <!-- Modal -->
+    <div id="modalOverlay" class="modal-overlay"></div>
+    <div id="eventModal" class="modal">
+        <h3 class="text-xl font-semibold mb-4">Dodaj wydarzenie</h3>
+        <label class="block text-sm text-gray-700">Data: <span id="eventDate" class="font-medium"></span></label>
+        <div class="mb-4">
+            <label class="block text-sm text-gray-700">Godzina:</label>
+            <input type="time" id="eventTime" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm text-gray-700">Opis:</label>
+            <input type="text" id="eventDesc" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="flex space-x-2">
+            <button onclick="saveEvent()" class="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Zapisz</button>
+            <button onclick="closeModal()" class="w-full py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Anuluj</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedDate;
+        let calendar;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pl',
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    fetch('/events')
+                        .then(response => response.json())
+                        .then(events => {
+                            successCallback(events.map(event => ({
+                                id: event.id,
+                                title: event.description,
+                                start: `${event.event_date}T${event.event_time}`
+                            })));
+                        })
+                        .catch(error => failureCallback(error));
+                },
+                dateClick: function(info) {
+                    selectedDate = info.dateStr;
+                    document.getElementById('eventDate').innerText = selectedDate;
+                    document.getElementById('modalOverlay').style.display = 'block';
+                    document.getElementById('eventModal').style.display = 'block';
+                },
+                eventClick: function(info) {
+                    if (confirm("Czy chcesz usunąć to wydarzenie?")) {
+                        fetch('/delete_event', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: info.event.id })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                info.event.remove();
+                                calendar.refetchEvents();
+                            } else {
+                                alert(data.error);
+                            }
+                        })
+                        .catch(error => {
+                            alert("Wystąpił błąd przy usuwaniu wydarzenia.");
+                        });
+                    }
+                }
+            });
+            calendar.render();
+        });
+
+        function saveEvent() {
+            let time = document.getElementById('eventTime').value;
+            let desc = document.getElementById('eventDesc').value;
+            
+            fetch('/add_event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ event_date: selectedDate, event_time: time, description: desc })
+            }).then(response => response.json())
+              .then(() => {
+                  closeModal();
+                  calendar.refetchEvents();
+              });
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('eventModal').style.display = 'none';
+        }
+
+        function logout() {
+            window.location.href = '/logout';
+        }
+    </script>
+</body>
+</html>

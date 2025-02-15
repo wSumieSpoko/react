@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejestracja i Logowanie</title>
+    <!-- Łączenie z Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="flex justify-center items-center min-h-screen">
+        <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
+            <!-- Informacja o pomyślnej rejestracji -->
+            <% if session[:register_success] %>
+                <div id="notification" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white p-4 rounded-lg shadow-md w-64">
+                    <p>Rejestracja zakończona sukcesem!</p>
+                    <div id="progress-bar" class="bg-green-700 h-2 mt-2 rounded-full w-full" style="width: 100%;"></div>
+                </div>
+                <script>
+                    // Zniknięcie powiadomienia po 3 sekundach
+                    setTimeout(function() {
+                        document.getElementById("notification").style.display = 'none';
+                    }, 3000); // Czas trwania powiadomienia: 3 sekundy
+                </script>
+                <% session[:register_success] = nil %>  <!-- Resetowanie flagi sesji -->
+            <% end %>
+
+            <!-- Informacja o błędnym logowaniu -->
+            <% if session[:login_error] %>
+                <div id="notification" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-md w-64">
+                    <p>Nieprawidłowy login lub hasło!</p>
+                    <div id="progress-bar" class="bg-red-700 h-2 mt-2 rounded-full w-full" style="width: 100%;"></div>
+                </div>
+                <script>
+                    // Zniknięcie powiadomienia po 3 sekundach
+                    setTimeout(function() {
+                        document.getElementById("notification").style.display = 'none';
+                    }, 3000); // Czas trwania powiadomienia: 3 sekundy
+                </script>
+                <% session[:login_error] = nil %>  <!-- Resetowanie flagi sesji -->
+            <% end %>
+
+            <!-- Formularz rejestracji -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-semibold text-center text-gray-800 mb-4">Rejestracja</h2>
+                <form action="/register" method="post">
+                    <div class="mb-4">
+                        <label for="user" class="block text-sm font-medium text-gray-700">Login:</label>
+                        <input type="text" name="user" id="user" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Hasło:</label>
+                        <input type="password" name="password" id="password" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <button type="submit" class="w-full py-3 mt-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">Zarejestruj</button>
+                </form>
+            </div>
+
+            <!-- Formularz logowania -->
+            <div>
+                <h2 class="text-2xl font-semibold text-center text-gray-800 mb-4">Logowanie</h2>
+                <form action="/login" method="post">
+                    <div class="mb-4">
+                        <label for="loginUser" class="block text-sm font-medium text-gray-700">Login:</label>
+                        <input type="text" name="loginUser" id="loginUser" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="loginPassword" class="block text-sm font-medium text-gray-700">Hasło:</label>
+                        <input type="password" name="loginPassword" id="loginPassword" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <button type="submit" class="w-full py-3 mt-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">Zaloguj się</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
